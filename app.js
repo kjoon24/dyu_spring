@@ -1,39 +1,36 @@
 // =============================================
 //  🌸 DYU 벚꽃 사진전
-//  ⚠️ firebaseConfig 값을 본인 것으로 교체하세요
 // =============================================
 
+// ── Cloudinary 설정 (이미지 업로드) ──────────
+var CLOUDINARY_CLOUD = "dmca6nhdz";
+var CLOUDINARY_PRESET = "sakura_upload";
+var CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/" + CLOUDINARY_CLOUD + "/image/upload";
+
+// ── Firebase 설정 (데이터 저장) ───────────────
+// ⚠️ 아래 값을 본인 Firebase 프로젝트 값으로 교체하세요 (Storage 제외)
 var firebaseConfig = {
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_PROJECT.firebaseapp.com",
   projectId: "YOUR_PROJECT_ID",
-  // ⚠️ storageBucket: Firebase 콘솔에서 복사한 값 그대로 넣으세요
-  //    예시1 (구버전): "your-project.appspot.com"
-  //    예시2 (신버전): "your-project.firebasestorage.app"
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
   appId: "YOUR_APP_ID"
 };
 
-// =============================================
-//  Firebase 초기화
-// =============================================
+// ── Firebase 초기화 ───────────────────────────
 var db = null;
-var storage = null;
 var firebaseReady = false;
 
 try {
   firebase.initializeApp(firebaseConfig);
   db = firebase.firestore();
-  storage = firebase.storage();
   firebaseReady = true;
-  console.log("Firebase 초기화 성공");
+  console.log("Firebase Firestore 초기화 성공");
 } catch(e) {
   console.error("Firebase 초기화 실패:", e.message);
 }
 
 // =============================================
-//  뒤로가기 가로채기 (모달 닫기용)
+//  뒤로가기 → 모달 닫기
 // =============================================
 var modalHistoryPushed = false;
 
@@ -44,16 +41,14 @@ function pushModalHistory() {
   }
 }
 
-window.addEventListener("popstate", function(e) {
-  // 뒤로가기 눌렸을 때 모달이 열려 있으면 닫기
+window.addEventListener("popstate", function() {
   if (document.getElementById("modalOverlay").style.display === "flex") {
-    closeUploadModal(false); // false = history 다시 push 안함
+    closeUploadModal(false);
     return;
   }
   if (document.getElementById("detailOverlay").style.display === "flex") {
     document.getElementById("detailOverlay").style.display = "none";
     document.body.style.overflow = "";
-    return;
   }
   modalHistoryPushed = false;
 });
@@ -61,8 +56,8 @@ window.addEventListener("popstate", function(e) {
 // =============================================
 //  버튼 이벤트 연결
 // =============================================
-document.getElementById("openModalBtn").onclick = openUploadModal;
-document.getElementById("fabBtn").onclick = openUploadModal;
+document.getElementById("openModalBtn").onclick  = openUploadModal;
+document.getElementById("fabBtn").onclick        = openUploadModal;
 document.getElementById("closeModalBtn").onclick = function() { closeUploadModal(true); };
 
 document.getElementById("modalOverlay").onclick = function(e) {
@@ -83,17 +78,15 @@ document.getElementById("detailOverlay").onclick = function(e) {
 };
 
 document.getElementById("btnCamera").onclick = function() {
-  var el = document.getElementById("fileInputCamera");
-  el.value = "";
-  el.click();
+  document.getElementById("fileInputCamera").value = "";
+  document.getElementById("fileInputCamera").click();
 };
 document.getElementById("btnGallery").onclick = function() {
-  var el = document.getElementById("fileInputGallery");
-  el.value = "";
-  el.click();
+  document.getElementById("fileInputGallery").value = "";
+  document.getElementById("fileInputGallery").click();
 };
 document.getElementById("previewChangeBtn").onclick = function() {
-  document.getElementById("previewWrap").style.display = "none";
+  document.getElementById("previewWrap").style.display     = "none";
   document.getElementById("photoSourceBtns").style.display = "grid";
   selectedFile = null;
 };
@@ -117,7 +110,7 @@ document.getElementById("submitBtn").onclick = submitPhoto;
 function openUploadModal() {
   document.getElementById("modalOverlay").style.display = "flex";
   document.body.style.overflow = "hidden";
-  pushModalHistory(); // 뒤로가기 가로채기용 히스토리 추가
+  pushModalHistory();
 }
 
 function closeUploadModal(goBack) {
@@ -143,8 +136,8 @@ function handleFile(file) {
   selectedFile = file;
   var reader = new FileReader();
   reader.onload = function(e) {
-    document.getElementById("previewImg").src = e.target.result;
-    document.getElementById("previewWrap").style.display = "block";
+    document.getElementById("previewImg").src               = e.target.result;
+    document.getElementById("previewWrap").style.display     = "block";
     document.getElementById("photoSourceBtns").style.display = "none";
   };
   reader.readAsDataURL(file);
@@ -155,10 +148,10 @@ function handleFile(file) {
 // =============================================
 function resetForm() {
   selectedFile = null;
-  document.getElementById("authorName").value    = "";
-  document.getElementById("photoTitle").value    = "";
-  document.getElementById("photoLocation").value = "";
-  document.getElementById("photoDesc").value     = "";
+  document.getElementById("authorName").value              = "";
+  document.getElementById("photoTitle").value              = "";
+  document.getElementById("photoLocation").value           = "";
+  document.getElementById("photoDesc").value               = "";
   document.getElementById("descCount").textContent         = "0 / 200";
   document.getElementById("previewWrap").style.display     = "none";
   document.getElementById("photoSourceBtns").style.display = "grid";
@@ -173,7 +166,7 @@ function resetForm() {
 }
 
 // =============================================
-//  제출
+//  제출 (Cloudinary 업로드 → Firestore 저장)
 // =============================================
 function submitPhoto() {
   var author   = document.getElementById("authorName").value.trim();
@@ -184,70 +177,50 @@ function submitPhoto() {
   if (!selectedFile) { showNotice("사진을 먼저 선택해주세요. 📷", "error"); return; }
   if (!author)        { showNotice("이름을 입력해주세요.", "error"); return; }
   if (!title)         { showNotice("제목을 입력해주세요.", "error"); return; }
-
-  if (!firebaseReady) {
-    showNotice("⚙️ Firebase 설정이 필요합니다. app.js의 firebaseConfig를 확인해주세요.", "error");
-    return;
-  }
+  if (!firebaseReady) { showNotice("⚙️ Firebase 설정을 확인해주세요.", "error"); return; }
 
   var btn = document.getElementById("submitBtn");
   btn.disabled = true;
   document.getElementById("submitText").textContent     = "업로드 중... 🌸";
   document.getElementById("progressWrap").style.display = "block";
+  document.getElementById("progressFill").style.width   = "0%";
   document.getElementById("submitNotice").textContent   = "";
 
-  // 타임아웃 보호 (30초 내 응답 없으면 에러 표시)
-  var uploadTimeout = setTimeout(function() {
-    showNotice("⏱ 업로드 시간이 초과됐습니다. 네트워크를 확인하고 다시 시도해주세요.", "error");
-    btn.disabled = false;
-    document.getElementById("submitText").textContent     = "응모 제출하기";
-    document.getElementById("progressWrap").style.display = "none";
-  }, 30000);
+  // ── Step 1: Cloudinary에 이미지 업로드 ────────
+  var formData = new FormData();
+  formData.append("file", selectedFile);
+  formData.append("upload_preset", CLOUDINARY_PRESET);
 
-  var ext      = "jpg";
-  var nameParts = selectedFile.name.split(".");
-  if (nameParts.length > 1) ext = nameParts.pop().toLowerCase();
-  var filename = "photos/" + Date.now() + "_" + Math.random().toString(36).slice(2) + "." + ext;
+  var xhr = new XMLHttpRequest();
 
-  var storageRef = storage.ref(filename);
-  var uploadTask = storageRef.put(selectedFile);
-
-  uploadTask.on("state_changed",
-    // 진행중
-    function(snap) {
-      var pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+  // 진행률 표시
+  xhr.upload.onprogress = function(e) {
+    if (e.lengthComputable) {
+      var pct = Math.round((e.loaded / e.total) * 90); // 90%까지만 (저장 단계 남겨둠)
       document.getElementById("progressFill").style.width  = pct + "%";
       document.getElementById("progressLabel").textContent = "업로드 중... " + pct + "%";
-    },
-    // 에러
-    function(err) {
-      clearTimeout(uploadTimeout);
-      console.error("Storage 업로드 실패:", err.code, err.message);
-      var msg = "업로드 실패: ";
-      if (err.code === "storage/unauthorized")     msg += "Storage 권한이 없습니다. Firebase 규칙을 확인하세요.";
-      else if (err.code === "storage/canceled")    msg += "업로드가 취소됐습니다.";
-      else if (err.code === "storage/invalid-url") msg += "storageBucket 주소가 잘못됐습니다.";
-      else                                         msg += err.message;
-      showNotice(msg, "error");
-      btn.disabled = false;
-      document.getElementById("submitText").textContent     = "응모 제출하기";
-      document.getElementById("progressWrap").style.display = "none";
-    },
-    // 완료
-    function() {
-      clearTimeout(uploadTimeout);
+    }
+  };
+
+  xhr.onload = function() {
+    if (xhr.status === 200) {
+      var result = JSON.parse(xhr.responseText);
+      var imageUrl = result.secure_url;
+
+      document.getElementById("progressFill").style.width  = "95%";
       document.getElementById("progressLabel").textContent = "저장 중...";
 
-      storageRef.getDownloadURL().then(function(imageUrl) {
-        return db.collection("photos").add({
-          author:      author,
-          title:       title,
-          location:    location,
-          description: desc,
-          imageUrl:    imageUrl,
-          createdAt:   firebase.firestore.FieldValue.serverTimestamp()
-        });
+      // ── Step 2: Firestore에 데이터 저장 ─────────
+      db.collection("photos").add({
+        author:      author,
+        title:       title,
+        location:    location,
+        description: desc,
+        imageUrl:    imageUrl,
+        createdAt:   firebase.firestore.FieldValue.serverTimestamp()
       }).then(function() {
+        document.getElementById("progressFill").style.width  = "100%";
+        document.getElementById("progressLabel").textContent = "완료!";
         showNotice("🌸 응모가 완료되었습니다!", "success");
         setTimeout(function() {
           closeUploadModal(true);
@@ -260,8 +233,34 @@ function submitPhoto() {
         document.getElementById("submitText").textContent     = "응모 제출하기";
         document.getElementById("progressWrap").style.display = "none";
       });
+
+    } else {
+      console.error("Cloudinary 오류:", xhr.status, xhr.responseText);
+      showNotice("이미지 업로드 실패 (오류 " + xhr.status + "). 다시 시도해주세요.", "error");
+      btn.disabled = false;
+      document.getElementById("submitText").textContent     = "응모 제출하기";
+      document.getElementById("progressWrap").style.display = "none";
     }
-  );
+  };
+
+  xhr.onerror = function() {
+    console.error("네트워크 오류");
+    showNotice("네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.", "error");
+    btn.disabled = false;
+    document.getElementById("submitText").textContent     = "응모 제출하기";
+    document.getElementById("progressWrap").style.display = "none";
+  };
+
+  xhr.ontimeout = function() {
+    showNotice("업로드 시간이 초과됐습니다. 다시 시도해주세요.", "error");
+    btn.disabled = false;
+    document.getElementById("submitText").textContent     = "응모 제출하기";
+    document.getElementById("progressWrap").style.display = "none";
+  };
+
+  xhr.timeout = 30000; // 30초
+  xhr.open("POST", CLOUDINARY_URL, true);
+  xhr.send(formData);
 }
 
 function showNotice(msg, type) {
@@ -278,7 +277,7 @@ function loadGallery() {
   var countEl = document.getElementById("photoCount");
 
   if (!firebaseReady) {
-    grid.innerHTML = '<div class="empty-state"><p>⚙️ Firebase 설정이 필요합니다.<br>app.js의 firebaseConfig를 입력해주세요.</p></div>';
+    grid.innerHTML = '<div class="empty-state"><p>⚙️ Firebase 설정이 필요합니다.</p></div>';
     countEl.textContent = "";
     return;
   }
@@ -308,9 +307,7 @@ function loadGallery() {
             '<p class="card-author">📷 ' + esc(d.author) + '</p>' +
             (d.location ? '<p class="card-location">📍 ' + esc(d.location) + '</p>' : '') +
           '</div>';
-        (function(data) {
-          card.onclick = function() { openDetail(data); };
-        })(d);
+        (function(data) { card.onclick = function() { openDetail(data); }; })(d);
         grid.appendChild(card);
         idx++;
       });
@@ -324,10 +321,8 @@ function loadGallery() {
 
 function esc(str) {
   return String(str || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 
 // =============================================
@@ -341,7 +336,7 @@ function openDetail(d) {
   document.getElementById("detailDesc").textContent     = d.description || "";
   var date = d.createdAt && d.createdAt.toDate ? d.createdAt.toDate() : null;
   document.getElementById("detailDate").textContent = date
-    ? date.toLocaleDateString("ko-KR", {year:"numeric", month:"long", day:"numeric"}) : "";
+    ? date.toLocaleDateString("ko-KR", {year:"numeric",month:"long",day:"numeric"}) : "";
   document.getElementById("detailOverlay").style.display = "flex";
   document.body.style.overflow = "hidden";
   pushModalHistory();
@@ -352,23 +347,21 @@ function openDetail(d) {
 // =============================================
 function initPetals() {
   var container = document.getElementById("petalsContainer");
-  var emojis = ["🌸", "🌺", "✿", "❀", "🌷"];
+  var emojis = ["🌸","🌺","✿","❀","🌷"];
   for (var i = 0; i < 18; i++) {
     var petal = document.createElement("div");
     petal.className = "petal";
     petal.textContent = emojis[Math.floor(Math.random() * emojis.length)];
     petal.style.cssText =
-      "left:" + (Math.random() * 100) + "%;" +
-      "font-size:" + (10 + Math.random() * 14) + "px;" +
-      "animation-duration:" + (6 + Math.random() * 10) + "s;" +
-      "animation-delay:-" + (Math.random() * 12) + "s;" +
-      "opacity:" + (0.4 + Math.random() * 0.5) + ";";
+      "left:"+(Math.random()*100)+"%;" +
+      "font-size:"+(10+Math.random()*14)+"px;" +
+      "animation-duration:"+(6+Math.random()*10)+"s;" +
+      "animation-delay:-"+(Math.random()*12)+"s;" +
+      "opacity:"+(0.4+Math.random()*0.5)+";";
     container.appendChild(petal);
   }
 }
 
-// =============================================
-//  시작
-// =============================================
+// ── 시작 ──────────────────────────────────────
 initPetals();
 loadGallery();
