@@ -30,6 +30,29 @@ try {
 }
 
 // =============================================
+//  iOS body 스크롤 잠금 (overflow:hidden 무시 문제 대응)
+// =============================================
+var scrollY = 0;
+
+function lockBodyScroll() {
+  scrollY = window.scrollY;
+  document.body.style.position   = "fixed";
+  document.body.style.top        = "-" + scrollY + "px";
+  document.body.style.left       = "0";
+  document.body.style.right      = "0";
+  document.body.style.overflow   = "hidden";
+}
+
+function unlockBodyScroll() {
+  document.body.style.position = "";
+  document.body.style.top      = "";
+  document.body.style.left     = "";
+  document.body.style.right    = "";
+  document.body.style.overflow = "";
+  window.scrollTo(0, scrollY);
+}
+
+// =============================================
 //  뒤로가기 → 모달 닫기
 // =============================================
 var modalHistoryPushed = false;
@@ -48,7 +71,7 @@ window.addEventListener("popstate", function() {
   }
   if (document.getElementById("detailOverlay").style.display === "flex") {
     document.getElementById("detailOverlay").style.display = "none";
-    document.body.style.overflow = "";
+    unlockBodyScroll();
   }
   modalHistoryPushed = false;
 });
@@ -66,24 +89,27 @@ document.getElementById("modalOverlay").onclick = function(e) {
 
 document.getElementById("closeDetailBtn").onclick = function() {
   document.getElementById("detailOverlay").style.display = "none";
-  document.body.style.overflow = "";
+  unlockBodyScroll();
   if (modalHistoryPushed) { history.back(); modalHistoryPushed = false; }
 };
 document.getElementById("detailOverlay").onclick = function(e) {
   if (e.target === this) {
     this.style.display = "none";
-    document.body.style.overflow = "";
+    unlockBodyScroll();
     if (modalHistoryPushed) { history.back(); modalHistoryPushed = false; }
   }
 };
 
 document.getElementById("btnCamera").onclick = function() {
-  document.getElementById("fileInputCamera").value = "";
-  document.getElementById("fileInputCamera").click();
+  var el = document.getElementById("fileInputCamera");
+  el.value = "";
+  // iOS Safari: value 초기화 후 즉시 click 시 onchange 묵살 방지
+  setTimeout(function() { el.click(); }, 10);
 };
 document.getElementById("btnGallery").onclick = function() {
-  document.getElementById("fileInputGallery").value = "";
-  document.getElementById("fileInputGallery").click();
+  var el = document.getElementById("fileInputGallery");
+  el.value = "";
+  setTimeout(function() { el.click(); }, 10);
 };
 document.getElementById("previewChangeBtn").onclick = function() {
   document.getElementById("previewWrap").style.display     = "none";
@@ -109,13 +135,13 @@ document.getElementById("submitBtn").onclick = submitPhoto;
 // =============================================
 function openUploadModal() {
   document.getElementById("modalOverlay").style.display = "flex";
-  document.body.style.overflow = "hidden";
+  lockBodyScroll();
   pushModalHistory();
 }
 
 function closeUploadModal(goBack) {
   document.getElementById("modalOverlay").style.display = "none";
-  document.body.style.overflow = "";
+  unlockBodyScroll();
   resetForm();
   if (goBack && modalHistoryPushed) {
     history.back();
@@ -307,7 +333,7 @@ function loadGallery() {
             '<p class="card-author">📷 ' + esc(d.author) + '</p>' +
             (d.location ? '<p class="card-location">📍 ' + esc(d.location) + '</p>' : '') +
           '</div>';
-        (function(data) { card.onclick = function() { openDetail(data); }; })(d);
+        (function(id, data) { card.onclick = function() { openDetail(id, data); }; })(doc.id, d);
         grid.appendChild(card);
         idx++;
       });
@@ -328,7 +354,10 @@ function esc(str) {
 // =============================================
 //  상세 보기
 // =============================================
-function openDetail(d) {
+var currentDetailDocId = null;  // 수정 시 사용할 문서 ID
+
+function openDetail(docId, d) {
+  currentDetailDocId = docId;
   document.getElementById("detailImg").src              = d.imageUrl;
   document.getElementById("detailTitle").textContent    = d.title;
   document.getElementById("detailAuthor").textContent   = "📷 " + d.author;
@@ -338,8 +367,89 @@ function openDetail(d) {
   document.getElementById("detailDate").textContent = date
     ? date.toLocaleDateString("ko-KR", {year:"numeric",month:"long",day:"numeric"}) : "";
   document.getElementById("detailOverlay").style.display = "flex";
-  document.body.style.overflow = "hidden";
+  lockBodyScroll();
   pushModalHistory();
+}
+
+// 수정 버튼 → 수정 모달 열기
+document.getElementById("editBtn").onclick = function() {
+  var img      = document.getElementById("detailImg").src;
+  var author   = document.getElementById("detailAuthor").textContent.replace("📷 ", "");
+  var title    = document.getElementById("detailTitle").textContent;
+  var location = document.getElementById("detailLocation").textContent.replace("📍 ", "");
+  var desc     = document.getElementById("detailDesc").textContent;
+
+  document.getElementById("editPreviewImg").src   = img;
+  document.getElementById("editAuthor").value     = author;
+  document.getElementById("editTitle").value      = title;
+  document.getElementById("editLocation").value   = location;
+  document.getElementById("editDesc").value       = desc;
+  document.getElementById("editDescCount").textContent = desc.length + " / 200";
+  document.getElementById("editNotice").textContent   = "";
+  document.getElementById("editSubmitText").textContent = "수정 완료";
+  document.getElementById("editSubmitBtn").disabled   = false;
+
+  document.getElementById("detailOverlay").style.display = "none";
+  document.getElementById("editOverlay").style.display   = "flex";
+};
+
+// 수정 모달 닫기
+document.getElementById("closeEditBtn").onclick = function() {
+  document.getElementById("editOverlay").style.display = "none";
+  document.getElementById("detailOverlay").style.display = "flex";
+};
+document.getElementById("editOverlay").onclick = function(e) {
+  if (e.target === this) {
+    this.style.display = "none";
+    document.getElementById("detailOverlay").style.display = "flex";
+  }
+};
+
+// 글자 수 카운터
+document.getElementById("editDesc").oninput = function() {
+  document.getElementById("editDescCount").textContent = this.value.length + " / 200";
+};
+
+// 수정 제출
+document.getElementById("editSubmitBtn").onclick = function() {
+  var author   = document.getElementById("editAuthor").value.trim();
+  var title    = document.getElementById("editTitle").value.trim();
+  var location = document.getElementById("editLocation").value.trim();
+  var desc     = document.getElementById("editDesc").value.trim();
+
+  if (!author) { showEditNotice("이름을 입력해주세요.", "error"); return; }
+  if (!title)  { showEditNotice("제목을 입력해주세요.", "error"); return; }
+  if (!currentDetailDocId) { showEditNotice("문서 정보를 찾을 수 없습니다.", "error"); return; }
+
+  var btn = document.getElementById("editSubmitBtn");
+  btn.disabled = true;
+  document.getElementById("editSubmitText").textContent = "저장 중...";
+
+  db.collection("photos").doc(currentDetailDocId).update({
+    author:      author,
+    title:       title,
+    location:    location,
+    description: desc
+  }).then(function() {
+    showEditNotice("✅ 수정이 완료되었습니다!", "success");
+    setTimeout(function() {
+      document.getElementById("editOverlay").style.display = "none";
+      unlockBodyScroll();
+      modalHistoryPushed = false;
+      loadGallery();
+    }, 1200);
+  }).catch(function(err) {
+    console.error("수정 실패:", err);
+    showEditNotice("수정 실패: " + err.message, "error");
+    btn.disabled = false;
+    document.getElementById("editSubmitText").textContent = "수정 완료";
+  });
+};
+
+function showEditNotice(msg, type) {
+  var el = document.getElementById("editNotice");
+  el.textContent = msg;
+  el.className = "submit-notice" + (type ? " " + type : "");
 }
 
 // =============================================

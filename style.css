@@ -331,16 +331,19 @@ body {
 /* ===== Modal ===== */
 .modal-overlay {
   position: fixed;
-  inset: 0;
+  top: 0; left: 0; right: 0;
+  height: 100%;
+  height: 100dvh;            /* iOS Safari 키보드 대응 */
   background: rgba(45, 27, 37, 0.55);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   z-index: 1000;
   display: none;
   align-items: center;
   justify-content: center;
   padding: 20px;
-  /* animation 제거: 안드로이드 크롬 클릭 버그 방지 */
+  overflow: hidden;
+  touch-action: none;
 }
 
 .modal {
@@ -349,10 +352,13 @@ body {
   max-width: 520px;
   width: 100%;
   max-height: 90vh;
+  max-height: 90dvh;                  /* iOS Safari 키보드 대응 */
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   position: relative;
   box-shadow: 0 24px 80px rgba(45,27,37,0.3);
-  animation: modalIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
   scrollbar-width: thin;
   scrollbar-color: var(--sakura-pink) transparent;
 }
@@ -711,10 +717,10 @@ body {
   .modal {
     border-radius: 24px 24px 0 0;
     max-height: 95vh;
+    max-height: 95dvh;
     width: 100%;
     max-width: 100%;
-    /* iOS safe area */
-    padding-bottom: env(safe-area-inset-bottom, 0);
+    padding-bottom: env(safe-area-inset-bottom, 16px);
   }
 
   .detail-modal {
@@ -822,6 +828,13 @@ body {
   }
 }
 
+/* backdrop-filter 미지원 구형 iOS fallback */
+@supports not (backdrop-filter: blur(1px)) {
+  .modal-overlay {
+    background: rgba(45, 27, 37, 0.82);
+  }
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -832,3 +845,39 @@ body {
 
 /* 모달 스크롤 관성 (iOS) */
 .modal { -webkit-overflow-scrolling: touch; }
+
+/* ===== 수정 버튼 (상세 모달 내) ===== */
+.btn-edit {
+  display: block;
+  width: 100%;
+  margin-top: 20px;
+  padding: 14px;
+  background: var(--sakura-pale);
+  color: var(--sakura-accent);
+  border: 1.5px solid var(--sakura-pink);
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-family: 'Noto Serif KR', serif;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 48px;
+}
+.btn-edit:hover, .btn-edit:active {
+  background: var(--sakura-light);
+  border-color: var(--sakura-deep);
+}
+
+/* 수정 모달 내 이미지 미리보기 */
+.edit-preview-wrap {
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  border: 1.5px solid var(--sakura-light);
+}
+.edit-preview-wrap img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  display: block;
+}

@@ -21,7 +21,7 @@
   <header class="hero">
     <div class="hero-bg"></div>
     <div class="hero-content">
-      <p class="hero-sub">2025 Spring · Cherry Blossom</p>
+      <p class="hero-sub">2026 Spring · Cherry Blossom</p>
       <h1 class="hero-title">DYU 벚꽃 사진전</h1>
       <p class="hero-tagline">"누가 꽃이야?"</p>
       <p class="hero-tagline hero-tagline--answer">"우리가~♡"</p>
@@ -75,11 +75,11 @@
         <div class="photo-source-btns" id="photoSourceBtns">
           <button class="source-btn source-camera" id="btnCamera">
             <span class="source-icon">📷</span>
-            <span class="source-label">지금 촬영</span>
+            <span class="source-label">카메라 촬영</span>
           </button>
           <button class="source-btn source-gallery" id="btnGallery">
             <span class="source-icon">🖼️</span>
-            <span class="source-label">갤러리에서</span>
+            <span class="source-label">앨범에서 선택</span>
           </button>
         </div>
 
@@ -130,6 +130,44 @@
         <p class="detail-location" id="detailLocation"></p>
         <p class="detail-desc" id="detailDesc"></p>
         <p class="detail-date" id="detailDate"></p>
+        <button class="btn-edit" id="editBtn">✏️ 내용 수정하기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 수정 모달 -->
+  <div class="modal-overlay" id="editOverlay">
+    <div class="modal" id="editModal">
+      <button class="modal-close" id="closeEditBtn">✕</button>
+      <div class="modal-header">
+        <h3>✏️ 내용 수정</h3>
+        <p>사진은 변경되지 않습니다</p>
+      </div>
+      <div class="modal-body">
+        <div class="edit-preview-wrap">
+          <img id="editPreviewImg" alt=""/>
+        </div>
+        <div class="form-group">
+          <label>이름 <span class="required">*</span></label>
+          <input type="text" id="editAuthor" maxlength="20" inputmode="text" autocorrect="off"/>
+        </div>
+        <div class="form-group">
+          <label>제목 <span class="required">*</span></label>
+          <input type="text" id="editTitle" maxlength="40" inputmode="text" autocorrect="off"/>
+        </div>
+        <div class="form-group">
+          <label>촬영 장소</label>
+          <input type="text" id="editLocation" maxlength="40" inputmode="text" autocorrect="off"/>
+        </div>
+        <div class="form-group">
+          <label>사진 설명</label>
+          <textarea id="editDesc" maxlength="200" rows="3"></textarea>
+          <span class="char-count" id="editDescCount">0 / 200</span>
+        </div>
+        <button class="btn-submit" id="editSubmitBtn">
+          <span id="editSubmitText">수정 완료</span>
+        </button>
+        <p class="submit-notice" id="editNotice"></p>
       </div>
     </div>
   </div>
