@@ -332,6 +332,7 @@ function loadGallery() {
             '<p class="card-title">' + esc(d.title) + '</p>' +
             '<p class="card-author">📷 ' + esc(d.author) + '</p>' +
             (d.location ? '<p class="card-location">📍 ' + esc(d.location) + '</p>' : '') +
+            '<p class="card-heart">🩷 ' + (d.hearts || 0) + '</p>' +
           '</div>';
         (function(id, data) { card.onclick = function() { openDetail(id, data); }; })(doc.id, d);
         grid.appendChild(card);
@@ -354,10 +355,13 @@ function esc(str) {
 // =============================================
 //  상세 보기
 // =============================================
-var currentDetailDocId = null;  // 수정 시 사용할 문서 ID
+var currentDetailDocId = null;
+var currentHearts = 0;
 
 function openDetail(docId, d) {
   currentDetailDocId = docId;
+  currentHearts = d.hearts || 0;
+
   document.getElementById("detailImg").src              = d.imageUrl;
   document.getElementById("detailTitle").textContent    = d.title;
   document.getElementById("detailAuthor").textContent   = "📷 " + d.author;
@@ -366,10 +370,70 @@ function openDetail(docId, d) {
   var date = d.createdAt && d.createdAt.toDate ? d.createdAt.toDate() : null;
   document.getElementById("detailDate").textContent = date
     ? date.toLocaleDateString("ko-KR", {year:"numeric",month:"long",day:"numeric"}) : "";
+
+  // 하트 상태 반영
+  var liked = isLiked(docId);
+  var heartBtn  = document.getElementById("heartBtn");
+  document.getElementById("heartIcon").textContent  = liked ? "🩷" : "🤍";
+  document.getElementById("heartCount").textContent = currentHearts;
+  heartBtn.className = "btn-heart" + (liked ? " liked" : "");
+
   document.getElementById("detailOverlay").style.display = "flex";
   lockBodyScroll();
   pushModalHistory();
 }
+
+// ── 하트: localStorage로 중복 방지 ────────────
+function getLikedSet() {
+  try {
+    return JSON.parse(localStorage.getItem("sakura_liked") || "{}");
+  } catch(e) { return {}; }
+}
+function isLiked(docId) {
+  return !!getLikedSet()[docId];
+}
+function setLiked(docId, val) {
+  var s = getLikedSet();
+  if (val) s[docId] = true;
+  else delete s[docId];
+  try { localStorage.setItem("sakura_liked", JSON.stringify(s)); } catch(e) {}
+}
+
+document.getElementById("heartBtn").onclick = function(e) {
+  e.stopPropagation();
+  if (!currentDetailDocId || !firebaseReady) return;
+
+  var btn    = document.getElementById("heartBtn");
+  var icon   = document.getElementById("heartIcon");
+  var countEl = document.getElementById("heartCount");
+  var liked  = isLiked(currentDetailDocId);
+  var delta  = liked ? -1 : 1;
+  var newCount = Math.max(0, currentHearts + delta);
+
+  // UI 즉시 반영 (낙관적 업데이트)
+  currentHearts = newCount;
+  setLiked(currentDetailDocId, !liked);
+  icon.textContent  = !liked ? "🩷" : "🤍";
+  countEl.textContent = newCount;
+  btn.className = "btn-heart" + (!liked ? " liked pop" : "");
+  // pop 애니메이션 클래스 제거
+  setTimeout(function() {
+    btn.className = "btn-heart" + (!liked ? " liked" : "");
+  }, 400);
+
+  // Firestore 업데이트
+  db.collection("photos").doc(currentDetailDocId).update({
+    hearts: newCount
+  }).catch(function(err) {
+    // 실패 시 롤백
+    console.error("하트 저장 실패:", err);
+    currentHearts = currentHearts - delta;
+    setLiked(currentDetailDocId, liked);
+    icon.textContent   = liked ? "🩷" : "🤍";
+    countEl.textContent = currentHearts;
+    btn.className = "btn-heart" + (liked ? " liked" : "");
+  });
+};
 
 // 수정 버튼 → 수정 모달 열기
 document.getElementById("editBtn").onclick = function() {
