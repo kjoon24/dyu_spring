@@ -10,10 +10,10 @@ var CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/" + CLOUDINARY_CLOUD + "/i
 // ── Firebase 설정 (데이터 저장) ───────────────
 // ⚠️ 아래 값을 본인 Firebase 프로젝트 값으로 교체하세요 (Storage 제외)
 var firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyAqlBklvzCChbsFykTsxPfVnpURBp5JDA8",
+  authDomain: "dyucontest.firebaseapp.com",
+  projectId: "dyucontest",
+  appId: "1:742550983558:web:1678448ca0315ae2f21207"
 };
 
 // ── Firebase 초기화 ───────────────────────────
