@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#f4a8c0"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="벚꽃 사진전"/>
+  <title>🌸 벚꽃 사진전 2025</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+  <!-- 떨어지는 꽃잎 -->
+  <div class="petals-container" id="petalsContainer"></div>
+
+  <!-- 헤더 -->
+  <header class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-content">
+      <p class="hero-sub">2025 Spring · Cherry Blossom</p>
+      <h1 class="hero-title">벚꽃 사진전</h1>
+      <p class="hero-desc">당신이 담은 봄의 순간을 나눠주세요</p>
+      <button class="btn-upload" id="openModalBtn">
+        <span>🌸</span> 사진 응모하기
+      </button>
+    </div>
+    <div class="hero-wave"></div>
+  </header>
+
+  <!-- 갤러리 섹션 -->
+  <main class="gallery-section">
+    <div class="section-header">
+      <h2>응모 작품</h2>
+      <p id="photoCount">로딩 중...</p>
+    </div>
+    <div class="gallery-grid" id="galleryGrid">
+      <div class="loading-state">
+        <div class="loading-petal">🌸</div>
+        <p>사진을 불러오는 중...</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- 푸터 -->
+  <footer class="footer">
+    <p>🌸 벚꽃 사진전 2025 · 모든 작품의 저작권은 응모자에게 있습니다</p>
+  </footer>
+
+  <!-- 업로드 모달 -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="modal">
+      <button class="modal-close" id="closeModalBtn">✕</button>
+      <div class="modal-header">
+        <h3>🌸 사진 응모</h3>
+        <p>당신의 벚꽃 순간을 공유해주세요</p>
+      </div>
+      <div class="modal-body">
+        <!-- 이미지 업로드 영역 -->
+        <!-- 숨겨진 파일 입력들 -->
+        <input type="file" id="fileInputGallery" accept="image/*" hidden />
+        <input type="file" id="fileInputCamera" accept="image/*" capture="environment" hidden />
+
+        <!-- 미리보기 (선택 후 표시) -->
+        <div class="preview-wrap" id="previewWrap" style="display:none">
+          <img id="previewImg" class="preview-img" alt="미리보기"/>
+          <button class="preview-change" id="previewChangeBtn">✕ 다시 선택</button>
+        </div>
+
+        <!-- 사진 선택 버튼들 (미선택 상태) -->
+        <div class="photo-source-btns" id="photoSourceBtns">
+          <button class="source-btn source-camera" id="btnCamera">
+            <span class="source-icon">📷</span>
+            <span class="source-label">지금 촬영</span>
+          </button>
+          <button class="source-btn source-gallery" id="btnGallery">
+            <span class="source-icon">🖼️</span>
+            <span class="source-label">갤러리에서</span>
+          </button>
+        </div>
+
+        <!-- 입력 필드 -->
+        <div class="form-group">
+          <label>이름 <span class="required">*</span></label>
+          <input type="text" id="authorName" placeholder="홍길동" maxlength="20"
+                 inputmode="text" autocomplete="name" autocorrect="off"/>
+        </div>
+        <div class="form-group">
+          <label>제목 <span class="required">*</span></label>
+          <input type="text" id="photoTitle" placeholder="봄날의 오후" maxlength="40"
+                 inputmode="text" autocorrect="off"/>
+        </div>
+        <div class="form-group">
+          <label>촬영 장소</label>
+          <input type="text" id="photoLocation" placeholder="여의도 윤중로" maxlength="40"
+                 inputmode="text" autocorrect="off"/>
+        </div>
+        <div class="form-group">
+          <label>사진 설명</label>
+          <textarea id="photoDesc" placeholder="이 사진에 담긴 이야기를 들려주세요..." maxlength="200" rows="3"></textarea>
+          <span class="char-count" id="descCount">0 / 200</span>
+        </div>
+
+        <!-- 업로드 진행률 -->
+        <div class="progress-wrap" id="progressWrap" style="display:none">
+          <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+          <p class="progress-label" id="progressLabel">업로드 중...</p>
+        </div>
+
+        <button class="btn-submit" id="submitBtn">
+          <span id="submitText">응모 제출하기</span>
+        </button>
+        <p class="submit-notice" id="submitNotice"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 사진 상세 모달 -->
+  <div class="modal-overlay" id="detailOverlay">
+    <div class="modal detail-modal" id="detailModal">
+      <button class="modal-close" id="closeDetailBtn">✕</button>
+      <img id="detailImg" alt=""/>
+      <div class="detail-info">
+        <h3 id="detailTitle"></h3>
+        <p class="detail-author" id="detailAuthor"></p>
+        <p class="detail-location" id="detailLocation"></p>
+        <p class="detail-desc" id="detailDesc"></p>
+        <p class="detail-date" id="detailDate"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 모바일 하단 고정 FAB 버튼 -->
+  <div class="fab-wrap" id="fabWrap">
+    <button class="fab-btn" id="fabBtn" aria-label="사진 응모하기">🌸</button>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
