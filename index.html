@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
   <meta name="apple-mobile-web-app-title" content="벚꽃 사진전"/>
-  <title>🌸 벚꽃 사진전 2025</title>
+  <title>🌸 DYU 벚꽃 사진전</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css"/>
@@ -22,8 +22,9 @@
     <div class="hero-bg"></div>
     <div class="hero-content">
       <p class="hero-sub">2025 Spring · Cherry Blossom</p>
-      <h1 class="hero-title">벚꽃 사진전</h1>
-      <p class="hero-desc">당신이 담은 봄의 순간을 나눠주세요</p>
+      <h1 class="hero-title">DYU 벚꽃 사진전</h1>
+      <p class="hero-tagline">"누가 꽃이야?"</p>
+      <p class="hero-tagline hero-tagline--answer">"우리가~♡"</p>
       <button class="btn-upload" id="openModalBtn">
         <span>🌸</span> 사진 응모하기
       </button>
@@ -47,7 +48,7 @@
 
   <!-- 푸터 -->
   <footer class="footer">
-    <p>🌸 벚꽃 사진전 2025 · 모든 작품의 저작권은 응모자에게 있습니다</p>
+    <p>🌸 DYU 벚꽃 사진전 · 모든 작품의 저작권은 응모자에게 있습니다</p>
   </footer>
 
   <!-- 업로드 모달 -->
@@ -138,7 +139,10 @@
     <button class="fab-btn" id="fabBtn" aria-label="사진 응모하기">🌸</button>
   </div>
 
-  <!-- Firebase SDK -->
-  <script type="module" src="app.js"></script>
+  <!-- Firebase SDK (compat - 안드로이드 크롬 호환) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
