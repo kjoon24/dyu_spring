@@ -3,58 +3,85 @@
 //  ⚠️ firebaseConfig 값을 본인 것으로 교체하세요
 // =============================================
 
-const firebaseConfig = {
+var firebaseConfig = {
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_PROJECT.firebaseapp.com",
   projectId: "YOUR_PROJECT_ID",
+  // ⚠️ storageBucket: Firebase 콘솔에서 복사한 값 그대로 넣으세요
+  //    예시1 (구버전): "your-project.appspot.com"
+  //    예시2 (신버전): "your-project.firebasestorage.app"
   storageBucket: "YOUR_PROJECT.appspot.com",
   messagingSenderId: "YOUR_SENDER_ID",
   appId: "YOUR_APP_ID"
 };
 
-// Firebase 초기화 - 실패해도 UI는 동작하게
-let db = null;
-let storage = null;
-let firebaseReady = false;
+// =============================================
+//  Firebase 초기화
+// =============================================
+var db = null;
+var storage = null;
+var firebaseReady = false;
 
 try {
   firebase.initializeApp(firebaseConfig);
   db = firebase.firestore();
   storage = firebase.storage();
   firebaseReady = true;
+  console.log("Firebase 초기화 성공");
 } catch(e) {
   console.error("Firebase 초기화 실패:", e.message);
 }
 
 // =============================================
-//  버튼 이벤트는 Firebase와 무관하게 즉시 연결
+//  뒤로가기 가로채기 (모달 닫기용)
 // =============================================
+var modalHistoryPushed = false;
 
-// 열기 버튼들
+function pushModalHistory() {
+  if (!modalHistoryPushed) {
+    history.pushState({ modal: true }, "");
+    modalHistoryPushed = true;
+  }
+}
+
+window.addEventListener("popstate", function(e) {
+  // 뒤로가기 눌렸을 때 모달이 열려 있으면 닫기
+  if (document.getElementById("modalOverlay").style.display === "flex") {
+    closeUploadModal(false); // false = history 다시 push 안함
+    return;
+  }
+  if (document.getElementById("detailOverlay").style.display === "flex") {
+    document.getElementById("detailOverlay").style.display = "none";
+    document.body.style.overflow = "";
+    return;
+  }
+  modalHistoryPushed = false;
+});
+
+// =============================================
+//  버튼 이벤트 연결
+// =============================================
 document.getElementById("openModalBtn").onclick = openUploadModal;
 document.getElementById("fabBtn").onclick = openUploadModal;
+document.getElementById("closeModalBtn").onclick = function() { closeUploadModal(true); };
 
-// 닫기
-document.getElementById("closeModalBtn").onclick = closeUploadModal;
-
-// 모달 바깥 클릭
 document.getElementById("modalOverlay").onclick = function(e) {
-  if (e.target === this) closeUploadModal();
+  if (e.target === this) closeUploadModal(true);
 };
 
-// 상세 닫기
 document.getElementById("closeDetailBtn").onclick = function() {
   document.getElementById("detailOverlay").style.display = "none";
   document.body.style.overflow = "";
+  if (modalHistoryPushed) { history.back(); modalHistoryPushed = false; }
 };
 document.getElementById("detailOverlay").onclick = function(e) {
   if (e.target === this) {
     this.style.display = "none";
     document.body.style.overflow = "";
+    if (modalHistoryPushed) { history.back(); modalHistoryPushed = false; }
   }
 };
 
-// 카메라 / 갤러리 버튼
 document.getElementById("btnCamera").onclick = function() {
   var el = document.getElementById("fileInputCamera");
   el.value = "";
@@ -65,43 +92,42 @@ document.getElementById("btnGallery").onclick = function() {
   el.value = "";
   el.click();
 };
-
-// 다시 선택
 document.getElementById("previewChangeBtn").onclick = function() {
   document.getElementById("previewWrap").style.display = "none";
   document.getElementById("photoSourceBtns").style.display = "grid";
   selectedFile = null;
 };
 
-// 파일 선택 완료
 document.getElementById("fileInputGallery").onchange = function() {
-  if (this.files[0]) handleFile(this.files[0]);
+  if (this.files && this.files[0]) handleFile(this.files[0]);
 };
 document.getElementById("fileInputCamera").onchange = function() {
-  if (this.files[0]) handleFile(this.files[0]);
+  if (this.files && this.files[0]) handleFile(this.files[0]);
 };
 
-// 글자 수
 document.getElementById("photoDesc").oninput = function() {
   document.getElementById("descCount").textContent = this.value.length + " / 200";
 };
 
-// 제출
 document.getElementById("submitBtn").onclick = submitPhoto;
 
 // =============================================
 //  모달 열기 / 닫기
 // =============================================
 function openUploadModal() {
-  var overlay = document.getElementById("modalOverlay");
-  overlay.style.display = "flex";
+  document.getElementById("modalOverlay").style.display = "flex";
   document.body.style.overflow = "hidden";
+  pushModalHistory(); // 뒤로가기 가로채기용 히스토리 추가
 }
 
-function closeUploadModal() {
+function closeUploadModal(goBack) {
   document.getElementById("modalOverlay").style.display = "none";
   document.body.style.overflow = "";
   resetForm();
+  if (goBack && modalHistoryPushed) {
+    history.back();
+    modalHistoryPushed = false;
+  }
 }
 
 // =============================================
@@ -129,27 +155,27 @@ function handleFile(file) {
 // =============================================
 function resetForm() {
   selectedFile = null;
-  document.getElementById("authorName").value = "";
-  document.getElementById("photoTitle").value = "";
+  document.getElementById("authorName").value    = "";
+  document.getElementById("photoTitle").value    = "";
   document.getElementById("photoLocation").value = "";
-  document.getElementById("photoDesc").value = "";
-  document.getElementById("descCount").textContent = "0 / 200";
-  document.getElementById("previewWrap").style.display = "none";
+  document.getElementById("photoDesc").value     = "";
+  document.getElementById("descCount").textContent         = "0 / 200";
+  document.getElementById("previewWrap").style.display     = "none";
   document.getElementById("photoSourceBtns").style.display = "grid";
-  document.getElementById("progressWrap").style.display = "none";
-  document.getElementById("progressFill").style.width = "0%";
-  document.getElementById("submitNotice").textContent = "";
-  document.getElementById("submitNotice").className = "submit-notice";
-  document.getElementById("submitText").textContent = "응모 제출하기";
-  document.getElementById("submitBtn").disabled = false;
-  document.getElementById("fileInputGallery").value = "";
-  document.getElementById("fileInputCamera").value = "";
+  document.getElementById("progressWrap").style.display    = "none";
+  document.getElementById("progressFill").style.width      = "0%";
+  document.getElementById("submitNotice").textContent      = "";
+  document.getElementById("submitNotice").className        = "submit-notice";
+  document.getElementById("submitText").textContent        = "응모 제출하기";
+  document.getElementById("submitBtn").disabled            = false;
+  document.getElementById("fileInputGallery").value        = "";
+  document.getElementById("fileInputCamera").value         = "";
 }
 
 // =============================================
 //  제출
 // =============================================
-async function submitPhoto() {
+function submitPhoto() {
   var author   = document.getElementById("authorName").value.trim();
   var title    = document.getElementById("photoTitle").value.trim();
   var location = document.getElementById("photoLocation").value.trim();
@@ -160,59 +186,82 @@ async function submitPhoto() {
   if (!title)         { showNotice("제목을 입력해주세요.", "error"); return; }
 
   if (!firebaseReady) {
-    showNotice("Firebase 설정을 확인해주세요. app.js의 firebaseConfig를 입력해야 합니다.", "error");
+    showNotice("⚙️ Firebase 설정이 필요합니다. app.js의 firebaseConfig를 확인해주세요.", "error");
     return;
   }
 
   var btn = document.getElementById("submitBtn");
   btn.disabled = true;
-  document.getElementById("submitText").textContent = "업로드 중... 🌸";
+  document.getElementById("submitText").textContent     = "업로드 중... 🌸";
   document.getElementById("progressWrap").style.display = "block";
+  document.getElementById("submitNotice").textContent   = "";
 
-  try {
-    var ext = (selectedFile.name.split(".").pop() || "jpg").toLowerCase();
-    var filename = "photos/" + Date.now() + "_" + Math.random().toString(36).slice(2) + "." + ext;
-    var storageRef = storage.ref(filename);
-    var uploadTask = storageRef.put(selectedFile);
-
-    var imageUrl = await new Promise(function(resolve, reject) {
-      uploadTask.on("state_changed",
-        function(snap) {
-          var pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
-          document.getElementById("progressFill").style.width = pct + "%";
-          document.getElementById("progressLabel").textContent = "업로드 중... " + pct + "%";
-        },
-        reject,
-        function() {
-          storageRef.getDownloadURL().then(resolve).catch(reject);
-        }
-      );
-    });
-
-    document.getElementById("progressLabel").textContent = "저장 중...";
-
-    await db.collection("photos").add({
-      author: author,
-      title: title,
-      location: location,
-      description: desc,
-      imageUrl: imageUrl,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    showNotice("🌸 응모가 완료되었습니다!", "success");
-    setTimeout(function() {
-      closeUploadModal();
-      loadGallery();
-    }, 1500);
-
-  } catch(err) {
-    console.error("업로드 실패:", err);
-    showNotice("업로드 실패: " + err.message, "error");
+  // 타임아웃 보호 (30초 내 응답 없으면 에러 표시)
+  var uploadTimeout = setTimeout(function() {
+    showNotice("⏱ 업로드 시간이 초과됐습니다. 네트워크를 확인하고 다시 시도해주세요.", "error");
     btn.disabled = false;
-    document.getElementById("submitText").textContent = "응모 제출하기";
+    document.getElementById("submitText").textContent     = "응모 제출하기";
     document.getElementById("progressWrap").style.display = "none";
-  }
+  }, 30000);
+
+  var ext      = "jpg";
+  var nameParts = selectedFile.name.split(".");
+  if (nameParts.length > 1) ext = nameParts.pop().toLowerCase();
+  var filename = "photos/" + Date.now() + "_" + Math.random().toString(36).slice(2) + "." + ext;
+
+  var storageRef = storage.ref(filename);
+  var uploadTask = storageRef.put(selectedFile);
+
+  uploadTask.on("state_changed",
+    // 진행중
+    function(snap) {
+      var pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+      document.getElementById("progressFill").style.width  = pct + "%";
+      document.getElementById("progressLabel").textContent = "업로드 중... " + pct + "%";
+    },
+    // 에러
+    function(err) {
+      clearTimeout(uploadTimeout);
+      console.error("Storage 업로드 실패:", err.code, err.message);
+      var msg = "업로드 실패: ";
+      if (err.code === "storage/unauthorized")     msg += "Storage 권한이 없습니다. Firebase 규칙을 확인하세요.";
+      else if (err.code === "storage/canceled")    msg += "업로드가 취소됐습니다.";
+      else if (err.code === "storage/invalid-url") msg += "storageBucket 주소가 잘못됐습니다.";
+      else                                         msg += err.message;
+      showNotice(msg, "error");
+      btn.disabled = false;
+      document.getElementById("submitText").textContent     = "응모 제출하기";
+      document.getElementById("progressWrap").style.display = "none";
+    },
+    // 완료
+    function() {
+      clearTimeout(uploadTimeout);
+      document.getElementById("progressLabel").textContent = "저장 중...";
+
+      storageRef.getDownloadURL().then(function(imageUrl) {
+        return db.collection("photos").add({
+          author:      author,
+          title:       title,
+          location:    location,
+          description: desc,
+          imageUrl:    imageUrl,
+          createdAt:   firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }).then(function() {
+        showNotice("🌸 응모가 완료되었습니다!", "success");
+        setTimeout(function() {
+          closeUploadModal(true);
+          loadGallery();
+        }, 1500);
+      }).catch(function(err) {
+        console.error("Firestore 저장 실패:", err);
+        showNotice("저장 실패: " + err.message, "error");
+        btn.disabled = false;
+        document.getElementById("submitText").textContent     = "응모 제출하기";
+        document.getElementById("progressWrap").style.display = "none";
+      });
+    }
+  );
 }
 
 function showNotice(msg, type) {
@@ -224,7 +273,7 @@ function showNotice(msg, type) {
 // =============================================
 //  갤러리 로드
 // =============================================
-async function loadGallery() {
+function loadGallery() {
   var grid    = document.getElementById("galleryGrid");
   var countEl = document.getElementById("photoCount");
 
@@ -234,42 +283,43 @@ async function loadGallery() {
     return;
   }
 
-  try {
-    var snapshot = await db.collection("photos").orderBy("createdAt", "desc").get();
-
-    if (snapshot.empty) {
-      grid.innerHTML = '<div class="empty-state"><div class="empty-icon">🌸</div><p>아직 응모된 사진이 없어요.<br>첫 번째 벚꽃 사진을 공유해주세요!</p></div>';
-      countEl.textContent = "아직 응모작이 없습니다";
-      return;
-    }
-
-    countEl.textContent = "총 " + snapshot.size + "점의 작품";
-    grid.innerHTML = "";
-
-    snapshot.forEach(function(doc, idx) {
-      var d = doc.data();
-      var card = document.createElement("div");
-      card.className = "gallery-card";
-      card.style.animationDelay = (idx * 0.07) + "s";
-      card.innerHTML =
-        '<div class="card-img-wrap">' +
-          '<img src="' + d.imageUrl + '" alt="' + esc(d.title) + '" loading="lazy"/>' +
-          '<div class="card-overlay"><p class="card-overlay-text">' + esc(d.description || "사진 보기 →") + '</p></div>' +
-        '</div>' +
-        '<div class="card-info">' +
-          '<p class="card-title">' + esc(d.title) + '</p>' +
-          '<p class="card-author">📷 ' + esc(d.author) + '</p>' +
-          (d.location ? '<p class="card-location">📍 ' + esc(d.location) + '</p>' : '') +
-        '</div>';
-      card.onclick = function() { openDetail(d); };
-      grid.appendChild(card);
+  db.collection("photos").orderBy("createdAt", "desc").get()
+    .then(function(snapshot) {
+      if (snapshot.empty) {
+        grid.innerHTML = '<div class="empty-state"><div class="empty-icon">🌸</div><p>아직 응모된 사진이 없어요.<br>첫 번째 벚꽃 사진을 공유해주세요!</p></div>';
+        countEl.textContent = "아직 응모작이 없습니다";
+        return;
+      }
+      countEl.textContent = "총 " + snapshot.size + "점의 작품";
+      grid.innerHTML = "";
+      var idx = 0;
+      snapshot.forEach(function(doc) {
+        var d = doc.data();
+        var card = document.createElement("div");
+        card.className = "gallery-card";
+        card.style.animationDelay = (idx * 0.07) + "s";
+        card.innerHTML =
+          '<div class="card-img-wrap">' +
+            '<img src="' + d.imageUrl + '" alt="' + esc(d.title) + '" loading="lazy"/>' +
+            '<div class="card-overlay"><p class="card-overlay-text">' + esc(d.description || "사진 보기 →") + '</p></div>' +
+          '</div>' +
+          '<div class="card-info">' +
+            '<p class="card-title">' + esc(d.title) + '</p>' +
+            '<p class="card-author">📷 ' + esc(d.author) + '</p>' +
+            (d.location ? '<p class="card-location">📍 ' + esc(d.location) + '</p>' : '') +
+          '</div>';
+        (function(data) {
+          card.onclick = function() { openDetail(data); };
+        })(d);
+        grid.appendChild(card);
+        idx++;
+      });
+    })
+    .catch(function(err) {
+      console.error("갤러리 로드 실패:", err);
+      grid.innerHTML = '<div class="empty-state"><p>⚠️ 갤러리를 불러오지 못했습니다.<br><small>' + err.message + '</small></p></div>';
+      countEl.textContent = "";
     });
-
-  } catch(err) {
-    console.error("갤러리 로드 실패:", err);
-    grid.innerHTML = '<div class="empty-state"><p>⚠️ 갤러리를 불러오지 못했습니다.<br>' + err.message + '</p></div>';
-    countEl.textContent = "";
-  }
 }
 
 function esc(str) {
@@ -284,7 +334,7 @@ function esc(str) {
 //  상세 보기
 // =============================================
 function openDetail(d) {
-  document.getElementById("detailImg").src = d.imageUrl;
+  document.getElementById("detailImg").src              = d.imageUrl;
   document.getElementById("detailTitle").textContent    = d.title;
   document.getElementById("detailAuthor").textContent   = "📷 " + d.author;
   document.getElementById("detailLocation").textContent = d.location ? "📍 " + d.location : "";
@@ -294,6 +344,7 @@ function openDetail(d) {
     ? date.toLocaleDateString("ko-KR", {year:"numeric", month:"long", day:"numeric"}) : "";
   document.getElementById("detailOverlay").style.display = "flex";
   document.body.style.overflow = "hidden";
+  pushModalHistory();
 }
 
 // =============================================
